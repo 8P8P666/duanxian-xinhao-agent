@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>短线共振信号智能体 · 多指标共振判定与假信号过滤</title>
+<meta name="description" content="短线共振信号智能体：同时计算 MACD、RSI、KDJ、BOLL 四个指标，判断多指标是否形成共振，并对单一指标假信号进行过滤。" />
+<link rel="stylesheet" href="styles.css" />
+<link rel="icon" href="favicon.svg" type="image/svg+xml" />
+</head>
+<body>
+
+<!-- ==================== 顶部品牌栏 ==================== -->
+<header class="brandbar">
+  <div class="brandbar-left">
+    <span class="brand-tag">
+      <svg class="brand-tag-icon" viewBox="0 0 24 24" aria-hidden="true">
+        <circle cx="12" cy="12" r="11" fill="#f7931a"/>
+        <text x="12" y="12" text-anchor="middle" dominant-baseline="central" font-size="15" fill="#1b1400" font-weight="700">₿</text>
+      </svg>
+      币安 Agent 参赛作品
+    </span>
+    <span class="brand-sep">·</span>
+    <span class="brand-dir">方向：数据分析</span>
+  </div>
+
+  <div class="brandbar-center">
+    <span class="brand-name">短线共振信号智能体</span>
+  </div>
+
+  <div class="brandbar-right">
+    <span class="status-dot" id="statusDot"></span>
+    <span class="status-text" id="statusText">正在连接数据源</span>
+  </div>
+</header>
+
+<main class="page">
+
+  <!-- ==================== 主视觉区 ==================== -->
+  <section class="hero">
+    <!-- Web3 装饰：区块链节点网络 -->
+    <svg class="hero-deco" viewBox="0 0 420 220" aria-hidden="true">
+      <line x1="60" y1="60" x2="180" y2="40" class="deco-line"/>
+      <line x1="180" y1="40" x2="320" y2="90" class="deco-line"/>
+      <line x1="60" y1="60" x2="140" y2="160" class="deco-line"/>
+      <line x1="140" y1="160" x2="300" y2="170" class="deco-line"/>
+      <line x1="320" y1="90" x2="300" y2="170" class="deco-line"/>
+      <line x1="180" y1="40" x2="140" y2="160" class="deco-line"/>
+      <circle cx="60" cy="60" r="7" class="deco-node"/>
+      <circle cx="180" cy="40" r="10" class="deco-node deco-node-main"/>
+      <circle cx="320" cy="90" r="6" class="deco-node"/>
+      <circle cx="140" cy="160" r="8" class="deco-node"/>
+      <circle cx="300" cy="170" r="6" class="deco-node"/>
+      <text x="180" y="40" text-anchor="middle" dominant-baseline="central" class="deco-node-label">₿</text>
+    </svg>
+
+    <div class="hero-body">
+      <p class="hero-eyebrow">多指标共振 · 假信号过滤 · 短周期结构观测</p>
+      <h1 class="hero-title">短线共振信号智能体</h1>
+      <p class="hero-sub">四指标同步确认，过滤单一信号噪音</p>
+      <p class="hero-desc">
+        指标刚金叉就进场，往往撞上假信号。这里同时计算 MACD、RSI、KDJ、BOLL 四个指标，
+        只有当它们在同一方向上形成共振、并且通过量能与趋势过滤之后，才给出较强的方向判断。
+      </p>
+      <div class="hero-stats">
+        <div class="hero-stat">
+          <span class="hero-stat-label">接入数据源</span>
+          <span class="hero-stat-value">综合平台 · 链上平台</span>
+        </div>
+        <div class="hero-stat">
+          <span class="hero-stat-label">参与共振指标</span>
+          <span class="hero-stat-value">MACD / RSI / KDJ / BOLL</span>
+        </div>
+        <div class="hero-stat">
+          <span class="hero-stat-label">输出评级</span>
+          <span class="hero-stat-value">强做多 · 谨慎做多 · 震荡 · 强做空</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ==================== 控制台 ==================== -->
+  <section class="card console">
+    <div class="card-head">
+      <h2 class="card-title">分析控制台</h2>
+      <span class="card-hint" id="consoleHint">选择平台、币种与周期后开始分析</span>
+    </div>
+
+    <div class="console-row">
+      <div class="field">
+        <label class="field-label">平台类型</label>
+        <div class="seg" id="segPlatform">
+          <button class="seg-btn is-active" data-value="gate">综合平台（主）</button>
+          <button class="seg-btn" data-value="hyperliquid">链上平台（备用）</button>
+        </div>
+      </div>
+
+      <div class="field">
+        <label class="field-label">市场类型</label>
+        <div class="seg" id="segMarket">
+          <button class="seg-btn is-active" data-value="perp">永续合约</button>
+          <button class="seg-btn" data-value="spot">现货</button>
+        </div>
+        <span class="field-note" id="marketNote"></span>
+      </div>
+
+      <div class="field field-grow">
+        <label class="field-label" for="symbolSelect">分析币种</label>
+        <select class="select" id="symbolSelect"></select>
+      </div>
+
+      <div class="field">
+        <label class="field-label">分析周期</label>
+        <div class="seg seg-wrap" id="segInterval">
+          <button class="seg-btn" data-value="1m">1分</button>
+          <button class="seg-btn is-active" data-value="15m">15分</button>
+          <button class="seg-btn" data-value="30m">30分</button>
+          <button class="seg-btn" data-value="1h">1时</button>
+          <button class="seg-btn" data-value="4h">4时</button>
+          <button class="seg-btn" data-value="1d">1天</button>
+        </div>
+      </div>
+
+      <div class="field field-action">
+        <button class="btn-primary" id="btnAnalyze">开始分析</button>
+      </div>
+    </div>
+
+    <div class="console-foot">
+      <span class="source-chip" id="sourceChip">数据源：待加载</span>
+      <span class="source-chip" id="candleChip">K线：—</span>
+      <span class="source-chip" id="timeChip">数据时间：—</span>
+    </div>
+  </section>
+
+  <!-- ==================== 接口错误提示 ==================== -->
+  <section class="alert alert-error" id="errorBox" hidden>
+    <strong class="alert-title" id="errorTitle">数据获取失败</strong>
+    <p class="alert-text" id="errorText"></p>
+  </section>
+
+  <!-- ==================== 分析结果区 ==================== -->
+  <div id="resultArea" hidden>
+
+    <!-- 行情摘要 -->
+    <section class="quote-grid" id="quoteGrid"></section>
+
+    <!-- 共振结论 + 过滤结果：两列 -->
+    <div class="dash-2col">
+      <section class="card verdict" id="verdictCard">
+        <div class="card-head">
+          <h2 class="card-title">当前市场共振结论</h2>
+          <span class="card-hint" id="verdictSymbol">—</span>
+        </div>
+        <div class="verdict-body">
+          <div class="verdict-badge" id="verdictBadge">
+            <span class="verdict-badge-label" id="verdictLabel">—</span>
+            <span class="verdict-badge-sub" id="verdictSub">—</span>
+          </div>
+          <div class="verdict-detail">
+            <div class="meter-block">
+              <div class="meter-head">
+                <span>综合共振评分</span>
+                <span class="meter-value" id="scoreValue">—</span>
+              </div>
+              <div class="meter-track">
+                <div class="meter-zero"></div>
+                <div class="meter-fill" id="scoreFill"></div>
+              </div>
+              <div class="meter-foot">
+                <span>强做空 -100</span>
+                <span>0</span>
+                <span>强做多 +100</span>
+              </div>
+            </div>
+            <div class="verdict-rows">
+              <div class="vrow">
+                <span class="vrow-label">共振强度</span>
+                <span class="vrow-value" id="resonanceValue">—</span>
+              </div>
+              <div class="vrow">
+                <span class="vrow-label">指标投票</span>
+                <span class="vrow-value" id="voteValue">—</span>
+              </div>
+              <div class="vrow">
+                <span class="vrow-label">过滤扣分</span>
+                <span class="vrow-value" id="penaltyValue">—</span>
+              </div>
+              <div class="vrow">
+                <span class="vrow-label">量能状态</span>
+                <span class="vrow-value" id="volumeValue">—</span>
+              </div>
+            </div>
+            <p class="verdict-note" id="verdictNote">—</p>
+          </div>
+        </div>
+      </section>
+
+      <section class="card filters">
+        <div class="card-head">
+          <h2 class="card-title">假信号过滤结果</h2>
+          <span class="card-hint" id="filterSummary">—</span>
+        </div>
+        <ul class="filter-list" id="filterList"></ul>
+      </section>
+    </div>
+
+    <!-- 四指标卡片 -->
+    <section class="indicator-section">
+      <div class="section-head">
+        <h2 class="section-title">四指标逐项拆解</h2>
+        <p class="section-sub">每个指标给出自己的方向，再汇总成上面的共振结论</p>
+      </div>
+      <div class="indicator-grid" id="indicatorGrid"></div>
+    </section>
+
+    <!-- K线图 -->
+    <section class="card chart-card">
+      <div class="card-head">
+        <h2 class="card-title">价格结构与布林通道</h2>
+        <span class="card-hint" id="chartHint">K线为红涨绿跌，虚线为布林上下轨，下方为成交量</span>
+      </div>
+      <div class="chart-wrap">
+        <canvas id="klineCanvas" height="360"></canvas>
+        <div class="chart-tip" id="chartTip" hidden></div>
+      </div>
+      <div class="chart-legend">
+        <span class="lg"><i class="lg-box lg-up"></i>上涨K线</span>
+        <span class="lg"><i class="lg-box lg-down"></i>下跌K线</span>
+        <span class="lg"><i class="lg-line lg-mid"></i>布林中轨（20周期均线）</span>
+        <span class="lg"><i class="lg-line lg-band"></i>布林上下轨（2倍标准差）</span>
+      </div>
+    </section>
+
+    <!-- 评级历史 -->
+    <section class="card history-card">
+      <div class="card-head">
+        <h2 class="card-title">近段评级变化轨迹</h2>
+        <span class="card-hint" id="historyHint">—</span>
+      </div>
+      <div class="history-strip" id="historyStrip"></div>
+      <div class="history-legend">
+        <span class="lg"><i class="lg-box" style="background:#d92b2b"></i>强做多</span>
+        <span class="lg"><i class="lg-box" style="background:#e8752a"></i>谨慎做多</span>
+        <span class="lg"><i class="lg-box" style="background:#c9b93f"></i>震荡</span>
+        <span class="lg"><i class="lg-box" style="background:#12864a"></i>强做空</span>
+      </div>
+      <p class="history-note">
+        每一格代表一根K线对应的评级，用来观察方向判断是持续还是频繁跳变。频繁跳变说明当前市场结构不稳定。
+      </p>
+    </section>
+
+    <!-- 跨平台对照 -->
+    <section class="card cross-card">
+      <div class="card-head">
+        <h2 class="card-title">跨平台真实数据对照</h2>
+        <span class="card-hint">同一币种在两个平台的公开行情同时抓取</span>
+      </div>
+      <div class="cross-grid" id="crossGrid"></div>
+      <p class="cross-note" id="crossNote"></p>
+    </section>
+
+  </div>
+
+  <!-- ==================== 说明与风险 ==================== -->
+  <section class="card notes-card">
+    <h2 class="card-title">数据来源与计算口径</h2>
+    <div class="notes-grid">
+      <div class="note-item">
+        <h3 class="note-title">行情数据来源</h3>
+        <p class="note-text">
+          行情数据取自知名交易平台的公开行情接口：以综合交易平台（现货与 USDT 永续合约）为主数据源，
+          链上永续平台作为备用与跨平台对照数据源。
+          所有接口均为公开行情接口，不需要任何密钥，项目不接入交易权限、不保存私钥、不执行下单。
+        </p>
+      </div>
+      <div class="note-item">
+        <h3 class="note-title">指标计算口径</h3>
+        <p class="note-text">
+          MACD 参数 12 / 26 / 9；RSI 参数 14，采用 Wilder 平滑；KDJ 参数 9 / 3 / 3；BOLL 参数 20 周期、2 倍标准差。
+          全部计算结果由页面根据接口返回的真实K线数据实时算出，未使用任何预设数值。
+        </p>
+      </div>
+      <div class="note-item">
+        <h3 class="note-title">资金费率口径差异</h3>
+        <p class="note-text">
+          两家平台的资金费率结算周期不同：链上永续平台按 1 小时结算，综合交易平台按 8 小时结算。
+          为避免口径混淆，页面统一换算成「年化资金费率」后再做对照，
+          并保留各自的原始结算周期标注。
+        </p>
+      </div>
+      <div class="note-item">
+        <h3 class="note-title">指标局限性</h3>
+        <p class="note-text">
+          技术指标是对历史价格的统计描述，天然滞后。震荡行情中指标容易反复交叉，趋势末端指标容易钝化。
+          本页面的过滤规则只能降低部分噪音，无法消除判断误差。数据可能存在延迟、缺失或接口波动。
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <section class="disclaimer">
+    <h2 class="disclaimer-title">风险提示</h2>
+    <p class="disclaimer-text">
+      本页面仅用于数字资产市场风险观测与数据分析，不构成投资建议，不代表任何买卖承诺。
+      页面中的「强做多」「强做空」等评级是程序化技术信号的计算结果，不等于实际交易建议。
+      市场有风险，投资需谨慎。任何投资决策应结合个人风险承受能力、资金状况和投资目标独立判断，必要时咨询持牌专业机构。过往表现不预示未来收益。
+    </p>
+  </section>
+
+</main>
+
+<footer class="foot">
+  <span>短线共振信号智能体</span>
+  <span class="foot-dot">·</span>
+  <span>币安 Agent 参赛作品</span>
+  <span class="foot-dot">·</span>
+  <span>方向：数据分析</span>
+</footer>
+
+<script src="indicators.js"></script>
+<script src="signal-engine.js"></script>
+<script src="chart.js"></script>
+<!-- 浏览器直连模块：当页面上没有部署云端接口代理时自动兜底使用 -->
+<script src="data-direct.js"></script>
+<script src="api-client.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

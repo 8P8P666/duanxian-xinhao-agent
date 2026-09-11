@@ -1,0 +1,13 @@
+{
+  "name": "duanxian-xinhao-agent",
+  "version": "1.0.0",
+  "private": true,
+  "description": "短线共振信号智能体 · 多指标共振判定 + 假信号过滤 · Netlify 静态部署版",
+  "scripts": {
+    "dev": "node dev-server.mjs",
+    "start": "node dev-server.mjs"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

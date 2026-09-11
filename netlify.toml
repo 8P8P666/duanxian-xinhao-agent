@@ -1,0 +1,40 @@
+# Netlify 部署配置
+# ------------------------------------------------------------------
+# 本项目采用「扁平结构」：网页文件（index.html、styles.css、各个 .js）
+# 全部直接放在仓库根目录，只有一个 functions/ 文件夹用来放云端接口。
+#
+# 这样做的好处：在 GitHub 网页版上传时，可以在资源管理器里按 Ctrl+A
+# 全选，选中的全是文件、不包含任何文件夹，网页上传一定成功。
+# ------------------------------------------------------------------
+
+[build]
+  # 发布目录：整个仓库根目录就是网站根目录
+  publish = "."
+  # 云端接口目录：functions/
+  functions = "functions"
+
+[build.environment]
+  NODE_VERSION = "20"
+
+# 前端统一调用 /api/xxx，由 Netlify Functions 转发处理
+[[redirects]]
+  from = "/api/market"
+  to = "/.netlify/functions/market"
+  status = 200
+
+[[redirects]]
+  from = "/api/symbols"
+  to = "/.netlify/functions/symbols"
+  status = 200
+
+# 单页兜底：其余路径都回到 index.html
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
+
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Content-Type-Options = "nosniff"
+    Referrer-Policy = "strict-origin-when-cross-origin"
